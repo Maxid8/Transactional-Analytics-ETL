@@ -24,3 +24,33 @@ dates['day_name'] = dates['full_date'].dt.strftime('%A')
 
 #print(dates.head())
 
+#Create the merchant dimension table
+merchant = df[['merchant', 'category']].drop_duplicates().reset_index(drop=True)
+merchant['merchant_id'] = merchant.index + 1
+merchant.rename(columns={'merchant': 'merchant_name'}, inplace=True)
+merchant = merchant[['merchant_id', 'merchant_name', 'category']]
+
+#print(merchant.head())
+
+#Create the customer dimension table
+customer = df[['cc_num', 'first', 'last', 'gender', 'dob', 'job', 'street', 'city', 'state', 'zip']].drop_duplicates().reset_index(drop=True)
+customer['customer_id'] = customer.index + 1
+customer = customer[['customer_id', 'cc_num', 'first', 'last', 'gender', 'dob', 'job', 'street', 'city', 'state', 'zip']]
+
+#print(customer.head())
+
+#Create the transactions fact table
+df = df.merge(dates, on='date_id', how='left')
+df = df.merge(merchant, left_on=['merchant', 'category'], right_on=['merchant_name', 'category'], how='left')
+df = df.merge(customer, on='cc_num', how='left')
+
+#print(df.columns)
+
+transactions = df[['trans_num', 'customer_id', 'merchant_id', 'date_id', 'trans_time', 'amt', 'is_fraud', 'merch_lat', 'merch_long']]
+
+#print(transactions.info())
+
+dates.to_parquet('date.parquet', engine='fastparquet', index=False)
+merchant.to_parquet('merchant.parquet', engine='fastparquet', index=False)
+customer.to_parquet('customer.parquet', engine='fastparquet', index=False)
+transactions.to_parquet('transactions.parquet', engine='fastparquet', index=False)
