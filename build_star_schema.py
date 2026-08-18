@@ -33,14 +33,13 @@ merchant = merchant[['merchant_id', 'merchant_name', 'category']]
 #print(merchant.head())
 
 #Create the customer dimension table
-customer = df[['cc_num', 'first', 'last', 'gender', 'dob', 'job', 'street', 'city', 'state', 'zip']].drop_duplicates().reset_index(drop=True)
+customer = df[['cc_num', 'first', 'last', 'gender', 'dob', 'job', 'street', 'city', 'state', 'zip']].drop_duplicates(subset=['cc_num']).reset_index(drop=True)
 customer['customer_id'] = customer.index + 1
 customer = customer[['customer_id', 'cc_num', 'first', 'last', 'gender', 'dob', 'job', 'street', 'city', 'state', 'zip']]
 
 #print(customer.head())
 
 #Create the transactions fact table
-df = df.merge(dates, on='date_id', how='left')
 df = df.merge(merchant, left_on=['merchant', 'category'], right_on=['merchant_name', 'category'], how='left')
 df = df.merge(customer, on='cc_num', how='left')
 
