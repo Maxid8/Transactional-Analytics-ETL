@@ -49,7 +49,7 @@ transactions = df[['trans_num', 'customer_id', 'merchant_id', 'date_id', 'trans_
 
 #print(transactions.info())
 
-dates.to_parquet('date.parquet', engine='fastparquet', index=False)
-merchant.to_parquet('merchant.parquet', engine='fastparquet', index=False)
-customer.to_parquet('customer.parquet', engine='fastparquet', index=False)
-transactions.to_parquet('transactions.parquet', engine='fastparquet', index=False)
+dates.to_csv('date.csv',index=False)
+merchant.to_csv('merchant.csv', index=False)
+customer.to_csv('customer.csv', index=False)
+transactions.to_csv('transactions.csv', index=False)
