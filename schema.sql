@@ -31,12 +31,12 @@ CREATE TABLE merchant (
 );
 
 CREATE TABLE transactions (
-    transaction_id INT PRIMARY KEY,
+    transaction_id CHAR(32) PRIMARY KEY,
     customer_id INT REFERENCES customer(customer_id),
     merchant_id INT REFERENCES merchant(merchant_id),
     date_id INT REFERENCES date(date_id),
     transaction_time TIME NOT NULL,
-    amt MONEY NOT NULL,
+    amt NUMERIC(20,2) NOT NULL,
     is_fraud BOOLEAN NOT NULL DEFAULT FALSE,
     merch_lat NUMERIC(9,6),
     merch_long NUMERIC(9,6)
