@@ -1,0 +1,1 @@
+-- Which categories experience the most fraud, and what is the total financial loss due to fraud per category?
