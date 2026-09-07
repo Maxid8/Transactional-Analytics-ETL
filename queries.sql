@@ -1,1 +1,8 @@
 -- Which categories experience the most fraud, and what is the total financial loss due to fraud per category?
+-- What hours of the day and days of the week do fraudsters most often strike? Is there a detectable pattern between nighttime vs. daytime transactions?
+-- Which fraudulent transactions exceed the average transaction value for the given category?
+-- Does it happen that multiple transactions are initiated from one card within a surprisingly short period of time (e.g. a few minutes)?
+-- What age groups and genders are most affected by fraud, and what is their average transaction size?
+-- How did the total financial loss from fraud accumulate day by day over time?
+-- Who are the merchants whose number of transactions reaches a minimum value (e.g. at least 50 transactions), but whose fraud rate is exceptionally high (>5%)?
+-- Is there a correlation between the discrepancy between the cardholder's residence and the merchant's geographic location (lat/long distance) and the likelihood of fraud?

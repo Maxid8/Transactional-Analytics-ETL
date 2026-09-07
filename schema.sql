@@ -37,7 +37,7 @@ CREATE TABLE transactions (
     date_id INT REFERENCES date(date_id),
     transaction_time TIME NOT NULL,
     amt NUMERIC(20,2) NOT NULL,
-    is_fraud BOOLEAN NOT NULL DEFAULT FALSE,
+    is_fraud SMALLINT NOT NULL,
     merch_lat NUMERIC(9,6),
     merch_long NUMERIC(9,6)
 );
