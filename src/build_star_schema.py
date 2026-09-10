@@ -1,19 +1,28 @@
 import pandas as pd
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from dotenv import load_dotenv
+from clean import load_and_clean
+from pathlib import Path
 
-RAW_DATA_PATH = "cleaned_fraud_data.parquet"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+REQUIRED_ENV_VARS = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"]
 
-load_dotenv()
+def get_db_config() -> dict[str, str]:
+    load_dotenv(PROJECT_ROOT / ".env")
+    missing = [var for var in REQUIRED_ENV_VARS if not os.environ.get(var)]
+    if missing:
+        raise RuntimeError(
+            f"Missing environment variables: {', '.join(missing)}. "
+            "Create an .env file in the root of your project based on .env.example."
+        )
+    return {var: os.environ[var] for var in REQUIRED_ENV_VARS}
 
-def load_cleaned_data(path: str) -> pd.DataFrame:
-    df = pd.read_parquet(path)
+def add_date_id(df: pd.DataFrame) -> pd.DataFrame:
     datetime_series = pd.to_datetime(df["trans_date_trans_time"])
     df["date_id"] = datetime_series.dt.strftime("%Y%m%d").astype(int)
     df["trans_time"] = datetime_series.dt.strftime("%H:%M:%S")
     return df
-
 
 def build_dim_date(df: pd.DataFrame) -> pd.DataFrame:
     year_min = df["date_id"].min() // 10000
@@ -47,7 +56,8 @@ def build_dim_customer(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index(drop=True)
     )
     customer["customer_id"] = customer.index + 1
-    columns = ["customer_id", "cc_num", "first", "last", "gender", "dob", "job", "street", "city", "state", "zip"]
+    customer = customer.rename(columns={"first": "first_name", "last": "last_name"})
+    columns = ["customer_id", "cc_num", "first_name", "last_name", "gender", "job", "dob", "street", "city", "state", "zip"]
     return customer[columns]
 
 def build_fact_transaction(df: pd.DataFrame, merchant: pd.DataFrame, customer: pd.DataFrame) -> pd.DataFrame:
@@ -59,7 +69,7 @@ def build_fact_transaction(df: pd.DataFrame, merchant: pd.DataFrame, customer: p
     fact = merged[[
         "trans_num", "customer_id", "merchant_id", "date_id",
         "trans_time", "amt", "is_fraud", "merch_lat", "merch_long"
-    ]]
+    ]].rename(columns={"trans_num": "transaction_id", "trans_time": "transaction_time"})
 
     validate_fact_transaction(fact, expected_rows=len(df))
     return fact
@@ -67,29 +77,40 @@ def build_fact_transaction(df: pd.DataFrame, merchant: pd.DataFrame, customer: p
 
 def validate_fact_transaction(fact: pd.DataFrame, expected_rows: int) -> None:
     assert len(fact) == expected_rows, (
-        f"A sorok száma megváltozott a merge során: {expected_rows} helyett {len(fact)}."
+        f"The number of rows changed during the merge: expected {expected_rows}, got {len(fact)}."
     )
     for fk_column in ["customer_id", "merchant_id", "date_id"]:
         missing = fact[fk_column].isna().sum()
-        assert missing == 0, f"{missing} sorhoz nem található egyező dimenzió: {fk_column}"
+        assert missing == 0, f"{missing} rows have no matching dimension for {fk_column}."
+
+def assert_columns_match(engine, df: pd.DataFrame, table_name: str) -> None:
+    inspector = inspect(engine)
+    expected = {col["name"] for col in inspector.get_columns(table_name)}
+    actual = set(df.columns)
+    assert actual == expected, (
+        f"{table_name}: columns do not match the actual database schema. "
+        f"Only in DataFrame: {actual - expected}, only in table: {expected - actual}"
+    )
 
 def load_to_postgres(tables: dict[str, pd.DataFrame]) -> None:
+    config = get_db_config()
     engine = create_engine(
-        f"postgresql+psycopg2://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
-        f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+        f"postgresql+psycopg2://{config['DB_USER']}:{config['DB_PASSWORD']}"
+        f"@{config['DB_HOST']}:{config['DB_PORT']}/{config['DB_NAME']}"
     )
 
     load_order = ["dim_date", "dim_merchant", "dim_customer", "fact_transaction"]
     for table_name in load_order:
-        tables[table_name].to_sql(
-            table_name, engine, if_exists="append", index=False, chunksize=10_000
-        )
-        print(f"{table_name}: {len(tables[table_name])} sor betöltve.")
+        df = tables[table_name]
+        assert_columns_match(engine, df, table_name)
+        df.to_sql(table_name, engine, if_exists="append", index=False, chunksize=10_000)
+        print(f"{table_name}: {len(df)} sor betöltve.")
 
     engine.dispose()
 
 def main():
-    df = load_cleaned_data(RAW_DATA_PATH)
+    df = load_and_clean()
+    df = add_date_id(df)
 
     dim_date = build_dim_date(df)
     dim_merchant = build_dim_merchant(df)
