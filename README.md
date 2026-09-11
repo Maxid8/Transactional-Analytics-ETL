@@ -146,8 +146,8 @@ This will:
    table as it goes:
    ```
    dim_date: 731 rows loaded.
-   dim_merchant: 693 rows loaded.
-   dim_customer: 924 rows loaded.
+   dim_merchant: 700 rows loaded.
+   dim_customer: 999 rows loaded.
    fact_transaction: 1852394 rows loaded.
    ```
 
