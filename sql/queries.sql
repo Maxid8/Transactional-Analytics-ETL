@@ -3,8 +3,8 @@ SELECT
 	m.category,
 	COUNT(m.category),
 	SUM(t.amt)
-FROM transactions t
-LEFT JOIN merchant m ON t.merchant_id = m.merchant_id
+FROM fact_transaction t
+LEFT JOIN dim_merchant m ON t.merchant_id = m.merchant_id
 WHERE t.is_fraud = 1
 GROUP BY m.category 
 ORDER BY COUNT(m.category) DESC;
@@ -13,8 +13,8 @@ ORDER BY COUNT(m.category) DESC;
 SELECT
     d.day_name,
     COUNT(t.is_fraud) 
-FROM transactions t 
-LEFT JOIN "date" d ON t.date_id = d.date_id
+FROM fact_transaction t 
+LEFT JOIN dim_date d ON t.date_id = d.date_id
 WHERE t.is_fraud = 1
 GROUP BY d.day_name 
 ORDER BY COUNT(t.is_fraud) DESC;
@@ -26,10 +26,10 @@ SELECT
 	m.category,
 	t.date_id,
 	t.amt,
-	ROUND(AVG(amt) OVER (PARTITION BY m.category),2)
-FROM transactions t
-LEFT JOIN merchant m ON t.merchant_id = m.merchant_id
-WHERE t.is_fraud = 1 AND  t.amt > (SELECT AVG(amt) FROM transactions)
+	ROUND(AVG(t.amt) OVER (PARTITION BY m.category),2)
+FROM fact_transaction t
+LEFT JOIN dim_merchant m ON t.merchant_id = m.merchant_id
+WHERE t.is_fraud = 1 AND  t.amt > (SELECT AVG(amt) FROM fact_transaction)
 ORDER BY m.category;
 
 -- What age groups and genders are most affected by fraud, and what is their average transaction size?
@@ -38,8 +38,8 @@ SELECT
 	c.gender,
 	COUNT(*) fraud_count,
     ROUND(AVG(t.amt), 2) avg_fraud_amount
-FROM transactions t
-LEFT JOIN customer c ON t.customer_id = c.customer_id
+FROM fact_transaction t
+LEFT JOIN dim_customer c ON t.customer_id = c.customer_id
 WHERE t.is_fraud = 1
 GROUP BY age_group, c.gender
 ORDER BY fraud_count DESC;
@@ -49,7 +49,7 @@ WITH daily_loss AS (
     SELECT
         date_id AS day,
         SUM(amt) AS daily_total
-    FROM transactions
+    FROM fact_transaction
     WHERE is_fraud = 1
     GROUP BY date_id
 )
@@ -66,8 +66,8 @@ SELECT
     SUM(t.is_fraud) AS sum_of_merch_fraud,
     COUNT(t.transaction_id) AS sum_of_transactions,
     ROUND(SUM(t.is_fraud)::decimal / COUNT(*), 4) AS fraud_rate
-FROM transactions t
-LEFT JOIN merchant m ON t.merchant_id = m.merchant_id
+FROM fact_transaction t
+LEFT JOIN dim_merchant m ON t.merchant_id = m.merchant_id
 GROUP BY m.merchant_name
 HAVING COUNT(t.transaction_id) >= 50
    AND SUM(t.is_fraud)::decimal / COUNT(*) > 0.05
