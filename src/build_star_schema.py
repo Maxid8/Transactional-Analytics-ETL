@@ -104,7 +104,7 @@ def load_to_postgres(tables: dict[str, pd.DataFrame]) -> None:
         df = tables[table_name]
         assert_columns_match(engine, df, table_name)
         df.to_sql(table_name, engine, if_exists="append", index=False, chunksize=10_000)
-        print(f"{table_name}: {len(df)} sor betöltve.")
+        print(f"{table_name}: {len(df)} rows loaded.")
 
     engine.dispose()
 

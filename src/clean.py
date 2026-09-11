@@ -16,9 +16,9 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop_duplicates(subset=["trans_num"])
     return df
 
-def load_and_clean(cache_path: str = "data/processed/cleaned_fraud_data.parquet") -> pd.DataFrame:
-    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-    if os.path.exists(cache_path):
+def load_and_clean(cache_path: Path = PROJECT_ROOT / "data/processed/cleaned_fraud_data.parquet") -> pd.DataFrame:
+    os.makedirs(cache_path.parent, exist_ok=True)
+    if cache_path.exists():
         return pd.read_parquet(cache_path)
     df = clean(load_raw_data(RAW_FILES))
     df.to_parquet(cache_path, index=False)
